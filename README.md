@@ -13,7 +13,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About the project
-
+Bla bla bla
 
 
 <!-- USAGE -->

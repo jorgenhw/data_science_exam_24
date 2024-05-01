@@ -1,2 +1,7 @@
 venv_data_science_exam
 .env
+
+.DS_Store
+/.DS_Store
+/*/DS_Store
+*/.DS_Store
