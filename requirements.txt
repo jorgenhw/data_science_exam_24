@@ -8,3 +8,6 @@ pandas==2.1.4
 huggingface_hub[cli]
 scikit-learn
 seaborn
+yfinance
+keras == 3.3.3
+tensorflow == 2.16.1
