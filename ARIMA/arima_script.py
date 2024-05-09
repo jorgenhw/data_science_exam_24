@@ -4,9 +4,16 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error
 from mango import Tuner
 import numpy as np
+import sys
 
-df_train = pd.read_csv('data/climate/splits/train/train.csv')
-df_test = pd.read_csv('data/climate/splits/test/test.csv')
+train_size = [50, 250, 750]
+test_size = [12, 120, 360]
+
+train = train_size[int(sys.argv[1])]
+test = test_size[int(sys.argv[2])]
+
+df_train = pd.read_csv(f'data/climate/data_partitions/Partition_test_{test}_train_{train}_train.csv')
+df_test = pd.read_csv(f'data/climate/data_partitions/Partition_test_{test}_train_{train}_test.csv')
 
 def arima_objective_function(args_list):
     global df_train
@@ -37,9 +44,9 @@ def arima_objective_function(args_list):
         
     return params_evaluated, model_cv_score_list
 
-param_space = dict(p= range(0, 3),
-                   d= range(0, 3),
-                   q =range(0, 3),
+param_space = dict(p= range(0, 50),
+                   d= range(0, 50),
+                   q =range(0, 50),
                    trend = ['n', 'c', 't', 'ct']
                   )
 
@@ -58,8 +65,14 @@ model.fit(df_train['AMOC0'])
 prediction = model.predict(n_periods=len(df_test['AMOC0']))
 
 # save data and predictions in pandas dataframe
+if len(df_test) < 50:
+    forecast_horizon = 'short'
+elif len(df_test) < 300:
+    forecast_horizon = 'medium'
+else:
+    forecast_horizon = 'long'
 
+# select only date, amoc0, and prediction columns
+df_test = df_test[['date', 'AMOC0']]
 df_test['prediction'] = prediction
-df_test.to_csv(f'ARIMA/{len(df_train)}_rows/short/Partition_test_12_train_50_errors.csv', index=False)
-df_test.to_csv(f'ARIMA/{len(df_train)}_rows/medium/Partition_test_12_train_50_errors.csv', index=False)
-df_test.to_csv(f'ARIMA/{len(df_train)}_rows/long/Partition_test_12_train_50_errors.csv', index=False)
+df_test.to_csv(f'ARIMA/data_sea/{len(df_train)}_rows/{forecast_horizon}/Partition_test_{len(df_test)}_train_{len(df_train)}_errors.csv', index=False)
