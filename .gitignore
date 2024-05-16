@@ -5,4 +5,15 @@ venv_data_science_exam
 /.DS_Store
 /*/DS_Store
 */.DS_Store
-NeuralProphet/lightning_logs/*
+
+# lightning logs in any folder
+**/lightning_logs/*
+
+# lightning logs in the root folder
+/lightning_logs/*
+
+# ignor all pycache folders
+__pycache__/
+
+LagLlama/lag-llama/*
+!/LagLlama/lag-llama/lag_llama_tune.py

@@ -1,4 +1,11 @@
 from statsmodels.tsa.stattools import adfuller
+from neuralprophet import NeuralProphet
+from hyperopt import hp, fmin, tpe, Trials,STATUS_OK 
+from hyperopt.pyll.base import scope
+from hyperopt.early_stop import no_progress_loss
+import torch
+import numpy as np
+import pandas as pd
 
 def apply_differencing(series, max_diff, alpha):
     # H0: Time-Series is Non-Stationary
@@ -89,7 +96,44 @@ def calculate_moving_averages(df, freq=None):
 
     return df
 
-def train_neural_prophet(df, model_params, ip_params, op_params):    
+def rolling_origin_func(df, forecast_horizon, roll_step=1):
+    '''
+    Rolling Origin Validation for Time Series Forecasting
+    Parameters:
+    df (DataFrame): Time Series Data
+    forecast_horizon (int): Number of periods to forecast
+    roll_step (int): Step size for rolling origin validation
+    
+    Returns:
+    train_test_splits (list): List of tuples containing train and test dataframes
+    
+    Source: https://github.com/michael-berk/DS_academic_papers/blob/master/28_prophet_vs_neural_prophet.py
+    '''
+
+    train_test_split_indices = list(range(len(df.index) - forecast_horizon - 10, len(df.index) - forecast_horizon, roll_step))
+    train_test_splits = [(df.iloc[:i, :], df.iloc[i:(i+forecast_horizon), :]) for i in train_test_split_indices]
+    return train_test_splits
+
+def accuracy(obs, pred):
+    """
+    Calculate accuracy measures
+
+    :param obs: pd.Series of observed values
+    :param pred: pd.Series of forecasted values
+    :return: dict with accuracy measures
+    """
+
+    obs, pred = np.array(obs.dropna()), np.array(pred.dropna())
+
+    assert len(obs) == len(pred), f'accuracy(): obs len is {len(obs)} but preds len is {len(pred)}'
+
+    rmse = np.sqrt(np.mean((obs - pred)**2))
+    mape = np.mean(np.abs((obs - pred) / obs)) 
+
+    return (rmse, mape)
+
+def train_neural_prophet(df, df_test, model_params, ip_params, op_params, test_horizon):
+        
     # Combine model parameters & additional input & output parameters
     args = {'model_params':model_params,'ip_params':ip_params,'op_params':op_params} 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # GPU Check        
@@ -103,57 +147,83 @@ def train_neural_prophet(df, model_params, ip_params, op_params):
         else: # else model the whole series as a whole
             global_local = 'global'            
         model = NeuralProphet( **{**args['model_params'],**args['op_params']},trend_global_local=global_local,\
-                                                                              season_global_local=global_local)        
+                                                                            season_global_local=global_local)        
         if args['ip_params']['lagged_regressor_cols'] is not None:
             if args['op_params']['n_lags']>0:
                 for col in args['ip_params']['lagged_regressor_cols']:
                     model = model.add_lagged_regressor(col, normalize="standardize")
             else:
                 df = df[list(set(df.columns) - set(ip_params['lagged_regressor_cols']))]
-        df_train, df_test = model.split_df(df, freq=args['ip_params']['freq'], valid_p=args['ip_params']['valid_p'])
-        train_metrics = model.fit(df_train, freq=args['ip_params']['freq'])
-        test_metrics = model.test(df_test)    
-        return {'loss':test_metrics['RMSE_val'].reset_index(drop=True)[0], 'status': STATUS_OK }
+        df_train, df_val = model.split_df(df, freq=args['ip_params']['freq'], valid_p=args['ip_params']['valid_p'])
+        train_metrics = model.fit(df_train, freq=args['ip_params']['freq'], validation_df=df_val)
+        test_metrics = model.test(df_val)
+    
+        return {'loss':test_metrics['RMSE'].reset_index(drop=True)[0], 'status': STATUS_OK }
 
-    early_stop_fn = no_progress_loss(iteration_stop_count=int((args['ip_params']['max_evals'])*0.7), percent_increase=0.5)
+    early_stop_fn = no_progress_loss(iteration_stop_count=int((args['ip_params']['max_evals'])*0.7), percent_increase=5)
     trials = Trials()
     best_results = fmin(optimize, space=args, algo=tpe.suggest, trials=trials, max_evals=args['ip_params']['max_evals'],\
                        early_stop_fn = early_stop_fn)
+                       
     best_model_params =\
     {
-    'epochs':epochs[best_results['epochs']], 
-    'daily_seasonality':daily_seasonality[best_results['daily_seasonality']],
-    'weekly_seasonality':weekly_seasonality[best_results['weekly_seasonality']],
-    'yearly_seasonality':yearly_seasonality[best_results['yearly_seasonality']],
-    'loss_func':loss_func[best_results['loss_func']],
-    'seasonality_mode':seasonality_mode[best_results['seasonality_mode']], 
-    'n_changepoints':n_changepoints[best_results['n_changepoints']],
-    'learning_rate':learning_rate[best_results['learning_rate']], 
+    # 'epochs':epochs[best_results['epochs']], 
+    # 'daily_seasonality':daily_seasonality[best_results['daily_seasonality']],
+    # 'weekly_seasonality':weekly_seasonality[best_results['weekly_seasonality']],
+    'yearly_seasonality':best_results['yearly_seasonality'],
+    # 'loss_func':loss_func[best_results['loss_func']],
+    'seasonality_mode':best_results['seasonality_mode'], 
+    'n_changepoints':best_results['n_changepoints'],
+    # 'learning_rate':learning_rate[best_results['learning_rate']], 
     }
     
     df = args['ip_params']['df']    
-    if 'ID' in df.columns: # add local trend & seasonality for each ID if present
-        global_local = 'local'
-    else: # else model the whole series as a whole
-        global_local = 'global'                
-    model = NeuralProphet( **{**best_model_params,**args['op_params']},trend_global_local=global_local,\
-                                                                              season_global_local=global_local) 
-        
+    # if 'ID' in df.columns: # add local trend & seasonality for each ID if present
+    #     global_local = 'local'
+    # else: # else model the whole series as a whole
+    #     global_local = 'global'                
+    # model = NeuralProphet( **{**best_model_params,**args['op_params']},trend_global_local=global_local,\
+    #                                                                           season_global_local=global_local) 
+    
     if args['ip_params']['lagged_regressor_cols'] is not None:    
         if args['op_params']['n_lags']>0:
             for col in args['ip_params']['lagged_regressor_cols']:
                 model = model.add_lagged_regressor(col, normalize="standardize")
         else:
             df = df[list(set(df.columns) - set(ip_params['lagged_regressor_cols']))]        
-    df_train, df_test = model.split_df(df, freq=args['ip_params']['freq'], valid_p=args['ip_params']['valid_p'])
-    train_metrics = model.fit(df_train, freq=args['ip_params']['freq'])
-    test_metrics = model.test(df_test)    
-    future = model.make_future_dataframe(df, periods=args['ip_params']['periods'],\
-                                             n_historic_predictions=args['ip_params']['n_historic_predictions'])
-    forecast = model.predict(future)
-    final_train_metrics = train_metrics.iloc[-1:].reset_index(drop=True)
-    final_test_metrics = test_metrics.iloc[-1:].reset_index(drop=True)
-    return model, forecast, best_model_params, final_train_metrics, final_test_metrics
+    
+    train_test_splits = rolling_origin_func(pd.concat([df, df_test], axis=0).reset_index(drop=True), test_horizon, roll_step=1)
+
+    rmse_n, mape_n = [], []
+    n_training_days = []
+
+    # loop through train/test splits
+    for x in train_test_splits:
+        train, test = x
+        n_training_days.append(len(train.index))
+
+        print(train)
+        print(test)
+
+        # train NeuralProphet and get accuracy 
+        model = NeuralProphet(n_lags = args['op_params']['n_lags'], n_forecasts = test_horizon, **best_model_params)
+
+        model.fit(train, freq=args['ip_params']['freq'])
+        future = model.make_future_dataframe(train, periods=args['ip_params']['periods'])
+        forecast = model.predict(future, raw=True, decompose=False)
+        rmse, mape = accuracy(test['y'], pd.Series(np.array(forecast.iloc[:, 1:]).flatten()))
+        rmse_n.append(rmse)
+        mape_n.append(mape)
+    
+    # train_metrics = model.fit(df, freq=args['ip_params']['freq'])
+    # df_test = pd.concat([df.iloc[-args['op_params']['n_lags']:], df_test], ignore_index=True)
+    # test_metrics = model.test(df_test)    
+    # future = model.make_future_dataframe(df, periods=args['ip_params']['periods'],\
+    #                                          n_historic_predictions=args['ip_params']['n_historic_predictions'])
+    # forecast = model.predict(future)
+    # final_train_metrics = train_metrics.iloc[-1:].reset_index(drop=True)
+    # final_test_metrics = test_metrics.iloc[-1:].reset_index(drop=True)
+    return best_model_params, rmse_n, mape_n
 
 def select_yhat(row, yhat_columns):
     for col in yhat_columns:

@@ -1,6 +1,5 @@
 nixtlats == 0.3.0
 python-dotenv == 1.0.1
-python-dotenv == 1.0.1
 matplotlib == 3.8.4
 torch>=2.0.0
 gluonts[torch]
@@ -9,3 +8,6 @@ pandas==2.1.4
 huggingface_hub[cli]
 scikit-learn
 seaborn
+pathlib
+statsforecast
+neuralprophet==0.4.2
