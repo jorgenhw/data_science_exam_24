@@ -1,3 +1,4 @@
+# data wrangling, plotting
 import numpy as np
 import pandas as pd
 import datetime as dt
@@ -42,29 +43,29 @@ dataset_train = np.reshape(dataset_train, (-1,1))
 # Selecting Open Price values
 dataset_test = test.Middeltemperatur.values 
 # Reshaping 1D to 2D array
-dataset_test = np.reshape(dataset_test, (-1,1)) 
+dataset_test = np.reshape(dataset_test, (-1,1))
 
 ####### MIN MAX SCALING DATA #########
 
 from sklearn.preprocessing import MinMaxScaler
 
 scaler = MinMaxScaler(feature_range=(0,1))
-scaled_train = scaler.fit_transform(dataset_train) # Fit to training data
-scaled_test = scaler.transform(dataset_test)       # Transform test data with same scaler
+scaled_train = scaler.fit_transform(dataset_train)	 # Fit to training data
+scaled_test = scaler.transform(dataset_test)	     # Transform test data with same scaler
 
 
 # Creating training sequences
 X_train = []
 y_train = []
-for i in range(24, len(scaled_train)-12):  # Subtract 12 to avoid going out of bounds
-    X_train.append(scaled_train[i-24:i, 0])
+for i in range(30, len(scaled_train)-12):  # Subtract 12 to avoid going out of bounds
+    X_train.append(scaled_train[i-30:i, 0])
     y_train.append(scaled_train[i+12, 0])  # Predict the point 12 steps ahead
 
 # Creating testing sequences
 X_test = []
 y_test = []
-for i in range(24, len(scaled_test)-12):  # Subtract 12 to avoid going out of bounds
-    X_test.append(scaled_test[i-24:i, 0])
+for i in range(30, len(scaled_test)-12):  # Subtract 12 to avoid going out of bounds
+    X_test.append(scaled_test[i-30:i, 0])
     y_test.append(scaled_test[i+12, 0])  # Predict the point 12 steps ahead
 
 # Convert to Numpy arrays and reshape
@@ -115,7 +116,7 @@ regressor.compile(optimizer = SGD(learning_rate=0.01, # learning rate
 				loss = "mean_squared_error")
 
 # fitting the model
-regressor.fit(X_train, y_train, epochs = 10, batch_size = 1)
+regressor.fit(X_train, y_train, epochs = 20, batch_size = 1)
 regressor.summary()
 
 # predictions with X_test data
@@ -130,7 +131,7 @@ fig.suptitle('Model Predictions')
 #Plot for RNN predictions
 axs[0].plot(train.index[150:], train.Middeltemperatur[150:], label = "train_data", color = "b")
 axs[0].plot(test.index, test.Middeltemperatur, label = "test_data", color = "g")
-axs[0].plot(test.index[24:-12], y_RNN_O, label = "y_RNN", color = "brown")  # Subtract 12 from the end
+axs[0].plot(test.index[30:-12], y_RNN_O, label = "y_RNN", color = "brown")  # Subtract 12 from the end
 axs[0].legend()
 axs[0].title.set_text("Basic RNN")
 
