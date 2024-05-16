@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import datetime as dt
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
 
 # RNN libraries
 from keras.models import Sequential
@@ -15,125 +16,152 @@ from keras.optimizers import SGD
 from sklearn import metrics
 from sklearn.metrics import mean_squared_error
 
+# test/training small
+df_train_small = pd.read_csv("../data/weather/AarhusSydObservations/splits/train/train_small.csv")
+df_test_small = pd.read_csv("../data/weather/AarhusSydObservations/splits/test/test_small.csv")
+# test/training large
+df_train_large = pd.read_csv("../data/weather/AarhusSydObservations/splits/train/train_large.csv")
+df_test_large = pd.read_csv("../data/weather/AarhusSydObservations/splits/test/test_large.csv")
 
-# reading train set (120 len test, 750 len train)
-train = pd.read_csv("../data/weather/AarhusSydObservations/data_partitions/Partition_test_120_train_750_train.csv")
-test = pd.read_csv("../data/weather/AarhusSydObservations/data_partitions/Partition_test_120_train_750_test.csv")
+def preprocess_data(train, test, column='Middeltemperatur'):
+    # Drop unnecessary columns
+    columns_to_drop = ['Luftfugtighed', 'Nedbør', 'Nedbørsminutter','Maksimumtemperatur', 'Minimumtemperatur', 'Skyhøjde', 'Skydække', 'Middelvindhastighed', 'Højeste vindstød']
+    train = train.drop(columns=columns_to_drop)
+    test = test.drop(columns=columns_to_drop)
 
-test = test.drop(columns=['Luftfugtighed', 'Nedbør', 'Nedbørsminutter','Maksimumtemperatur', 'Minimumtemperatur', 'Skyhøjde', 'Skydække', 'Middelvindhastighed', 'Højeste vindstød'])
-train = train.drop(columns=['Luftfugtighed', 'Nedbør', 'Nedbørsminutter','Maksimumtemperatur', 'Minimumtemperatur', 'Skyhøjde', 'Skydække', 'Middelvindhastighed', 'Højeste vindstød'])
+    # Convert 'DateTime' to datetime and set as index
+    train['DateTime'] = pd.to_datetime(train['DateTime'])
+    train = train.set_index('DateTime')
 
+    test['DateTime'] = pd.to_datetime(test['DateTime'])
+    test = test.set_index('DateTime')
 
-############################
-####### PREPROCESSING ######
-############################
+    dataset_train = train[column].values 
+    dataset_train = np.reshape(dataset_train, (-1,1))
 
-# make DateTime the index
-train['DateTime'] = pd.to_datetime(train['DateTime'])
-train = train.set_index('DateTime')
-# make DateTime the index
-test['DateTime'] = pd.to_datetime(test['DateTime'])
-test = test.set_index('DateTime')
+    # Selecting column values
+    dataset_test = test[column].values 
+    # Reshaping 1D to 2D array
+    dataset_test = np.reshape(dataset_test, (-1,1))
+    
 
-# Selecting middeltemperatur values
-dataset_train = train.Middeltemperatur.values 
-# Reshaping 1D to 2D array
-dataset_train = np.reshape(dataset_train, (-1,1)) 
+    return dataset_train, dataset_test
 
-# Selecting Open Price values
-dataset_test = test.Middeltemperatur.values 
-# Reshaping 1D to 2D array
-dataset_test = np.reshape(dataset_test, (-1,1))
+train_small, test_small = preprocess_data(df_train_small, df_test_small)
+train_large, test_large = preprocess_data(df_train_large, df_test_large)
 
 ####### MIN MAX SCALING DATA #########
 
-from sklearn.preprocessing import MinMaxScaler
+def scale_data(train, test):
+    # Create scaler object
+    scaler = MinMaxScaler(feature_range=(0,1))
+    # scaling dataset
+    scaled_train = scaler.fit_transform(train)
+    scaled_test = scaler.fit_transform(test) 
+    return scaled_train, scaled_test, scaler
 
-scaler = MinMaxScaler(feature_range=(0,1))
-scaled_train = scaler.fit_transform(dataset_train)	 # Fit to training data
-scaled_test = scaler.transform(dataset_test)	     # Transform test data with same scaler
+scaled_train_small, scaled_test_small, scaler = scale_data(train_small, test_small)
+scaled_train_large, scaled_test_large, scaler = scale_data(train_large, test_large)
 
 
-# Creating training sequences
-X_train = []
-y_train = []
-for i in range(30, len(scaled_train)-12):  # Subtract 12 to avoid going out of bounds
-    X_train.append(scaled_train[i-30:i, 0])
-    y_train.append(scaled_train[i+12, 0])  # Predict the point 12 steps ahead
+def create_sequences(scaled_data, look_back=24, predict_forward=12):
+    X, y = [], []
+    for i in range(look_back, len(scaled_data) - predict_forward):
+        X.append(scaled_data[i-look_back:i, 0])
+        y.append(scaled_data[i + predict_forward, 0])  # Predict the point 12 steps ahead
 
-# Creating testing sequences
-X_test = []
-y_test = []
-for i in range(30, len(scaled_test)-12):  # Subtract 12 to avoid going out of bounds
-    X_test.append(scaled_test[i-30:i, 0])
-    y_test.append(scaled_test[i+12, 0])  # Predict the point 12 steps ahead
+    X, y = np.array(X), np.array(y)
+    X = X.reshape((X.shape[0], X.shape[1], 1))
+    y = y.reshape((y.shape[0], 1))
+    
+    return X, y
 
-# Convert to Numpy arrays and reshape
-X_train, y_train = np.array(X_train), np.array(y_train)
-X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
-y_train = np.reshape(y_train, (y_train.shape[0], 1))
+X_train_small, y_train_small = create_sequences(scaled_train_small)
+X_train_large, y_train_large = create_sequences(scaled_train_large)
 
-X_test, y_test = np.array(X_test), np.array(y_test)
-X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
-y_test = np.reshape(y_test, (y_test.shape[0], 1))
-
-print("X_train :", X_train.shape,"y_train :", y_train.shape)
-print("X_test :",X_test.shape,"y_test :",y_test.shape)
+X_test_small, y_test_small = create_sequences(scaled_test_small)
+X_test_large, y_test_large = create_sequences(scaled_test_large)
 
 ############################
 ####### RNN MODEL ##########
 ############################
+def build_rnn(input_shape):
+    regressor = Sequential()
 
-# initializing the RNN
-regressor = Sequential()
+    regressor.add(SimpleRNN(units=50, activation="tanh", return_sequences=True, input_shape=input_shape))
+    regressor.add(SimpleRNN(units=50, activation="tanh", return_sequences=True))
+    regressor.add(SimpleRNN(units=50, activation="tanh", return_sequences=True))
+    regressor.add(SimpleRNN(units=50))
+    regressor.add(Dense(units=1, activation='sigmoid'))
 
-# adding RNN layers and dropout regularization
-regressor.add(SimpleRNN(units = 50,
-						activation = "tanh",
-						return_sequences = True,
-						input_shape = (X_train.shape[1],1)))
+    optimizer = SGD(learning_rate=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    regressor.compile(optimizer=optimizer, loss="mean_squared_error")
 
-#regressor.add(Dropout(0.2))
+    return regressor
 
-regressor.add(SimpleRNN(units = 50, 
-						activation = "tanh",
-						return_sequences = True))
+def fit_regressor(regressor, X_train, y_train, epochs=20, batch_size=1):
+    regressor.fit(X_train, y_train, epochs=epochs, batch_size=batch_size)
+    return regressor
 
-regressor.add(SimpleRNN(units = 50,
-						activation = "tanh",
-						return_sequences = True))
+regressor = build_rnn((X_train_large.shape[1], 1))
 
-regressor.add( SimpleRNN(units = 50))
+fitted_model = fit_regressor(regressor, X_train_large, y_train_large, epochs=1, batch_size=1)
 
-# adding the output layer
-regressor.add(Dense(units = 1,activation='sigmoid'))
+############################
+#### ROLLING ORIGIN PREDICTIONS #####
+############################
 
-# compiling RNN
-regressor.compile(optimizer = SGD(learning_rate=0.01, # learning rate
-								decay=1e-6, # 
-								momentum=0.9, 
-								nesterov=True), 
-				loss = "mean_squared_error")
+# Generating rolling origin predictions
+window_size = 24
+predict_ahead = 12
+rolling_predictions = []
 
-# fitting the model
-regressor.fit(X_train, y_train, epochs = 20, batch_size = 1)
-regressor.summary()
+############################
+#### ROLLING ORIGIN PREDICTIONS #####
+############################
 
-# predictions with X_test data
-y_RNN = regressor.predict(X_test)
+def rolling_origin_predictions(model, scaled_test, scaler, look_back=24, predict_forward=12):
+    predictions = []
+    for start in range(len(scaled_test) - look_back - predict_forward):
+        end = start + look_back
+        X_test = scaled_test[start:end]
 
-# scaling back from 0-1 to original
-y_RNN_O = scaler.inverse_transform(y_RNN) 
+        # reshape input to be [samples, time steps, features]
+        X_test = np.reshape(X_test, (1, X_test.shape[0], 1))
 
-fig, axs = plt.subplots(3,figsize =(18,12),sharex=True, sharey=True)
-fig.suptitle('Model Predictions')
+        # Make prediction for the next 'predict_forward' steps
+        preds = model.predict(X_test) # Get the prediction for the next step
+        preds = scaler.inverse_transform(preds) # Inverse transform to original scale
+        predictions.append(preds[0][0])
+    
+    return predictions
 
-#Plot for RNN predictions
-axs[0].plot(train.index[150:], train.Middeltemperatur[150:], label = "train_data", color = "b")
-axs[0].plot(test.index, test.Middeltemperatur, label = "test_data", color = "g")
-axs[0].plot(test.index[30:-12], y_RNN_O, label = "y_RNN", color = "brown")  # Subtract 12 from the end
-axs[0].legend()
-axs[0].title.set_text("Basic RNN")
+# Generate rolling origin predictions
+rolling_predictions_small = rolling_origin_predictions(fitted_model, scaled_test_small, scaler)
+rolling_predictions_large = rolling_origin_predictions(fitted_model, scaled_test_large, scaler)
 
-# saving plot
-plt.savefig("RNN_predictions.png")
+# Plotting the results
+def plot_results(rolling_predictions, test_data, train_data, title):
+    fig, axs = plt.subplots(1, figsize=(18, 6))
+    fig.suptitle(title)
+
+    # Plot train and test data
+    axs.plot(train_data.index, train_data['Middeltemperatur'], label="train_data", color="blue")
+    axs.plot(test_data.index, test_data['Middeltemperatur'], label="test_data", color="green")
+
+    # Calculate indices for rolling predictions
+    predict_start_idx = train_data.shape[0] + look_back
+    predict_indices = test_data.index[look_back:-predict_forward]
+
+    axs.plot(predict_indices, rolling_predictions, label="rolling_predictions", color="brown")
+    axs.legend()
+    axs.set_title(title)
+
+    plt.savefig(f"{title.replace(' ', '_')}.png")
+    plt.show()
+
+# Plot for small dataset
+plot_results(rolling_predictions_small, df_test_small, df_train_small, "RNN with Rolling Predictions (Small Dataset)")
+
+# Plot for large dataset
+plot_results(rolling_predictions_large, df_test_large, df_train_large, "RNN with Rolling Predictions (Large Dataset)")
