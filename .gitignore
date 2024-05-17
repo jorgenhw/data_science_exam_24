@@ -17,6 +17,7 @@ __pycache__/
 
 LagLlama/lag-llama/*
 !/LagLlama/lag-llama/lag_llama_tune.py
+!/LagLlama/lag-llama/lag_llama_test.py
 !/LagLlama/lag-llama/outputs/
 !/LagLlama/lag-llama/utils/
 /LagLlama/lag-llama/utils/utils.py

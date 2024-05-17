@@ -1,0 +1,5 @@
+train_size,forecast_horizon,context_length,rope_scaling
+large,10,950,False
+large,50,64,True
+small,10,100,True
+small,50,100,True

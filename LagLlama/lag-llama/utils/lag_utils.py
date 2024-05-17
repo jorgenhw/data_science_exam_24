@@ -34,8 +34,8 @@ def data_rolling_origin_prep(data_train: pd.DataFrame, data_test: pd.DataFrame, 
     return X, y
 
 def prepare_data_for_lag_llama(train, test):
-    df_train = pd.read_csv(f'data_test/climate/data_partitions/Partition_test_{test}_train_{train}_train.csv')
-    df_test = pd.read_csv(f'data_test/climate/data_partitions/Partition_test_{test}_train_{train}_test.csv')
+    df_train = pd.read_csv(f'data_test/climate/splits/train/train_{train}.csv')
+    df_test = pd.read_csv(f'data_test/climate/splits/test/test_{test}.csv')
 
     # rename columns to fit neural prophet requirements
     df_train.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
@@ -115,5 +115,7 @@ def get_lag_llama_predictions(dataset, prediction_length, device, context_length
     )
     forecasts = list(forecast_it)
     tss = list(ts_it)
+
+
 
     return forecasts, tss

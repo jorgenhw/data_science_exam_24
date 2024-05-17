@@ -1,0 +1,5 @@
+order,seasonal_order,trend,with_intercept,mse,train_size,test_size,forecast_horizon
+"(2, 0, 1)","(0, 0, 2, 12)",,True,0.005520562857100252,small,small,10
+"(0, 0, 1)","(1, 0, 0, 12)",,True,0.006396027750096772,small,large,50
+"(2, 0, 2)","(1, 0, 0, 12)",,True,0.07797349236174125,large,small,10
+"(0, 0, 0)","(2, 0, 2, 12)",,True,0.07435871231560305,large,large,50
