@@ -51,31 +51,55 @@ for train in train_size:
         n_changepoints=df[(df['train_size'] == train) & (df['forecast_horizon'] == forecast_horizon)]['n_changepoints'].values[0]
         n_lags=df[(df['train_size'] == train) & (df['forecast_horizon'] == forecast_horizon)]['n_lags'].values[0]
         ar_layers = df[(df['train_size'] == train) & (df['forecast_horizon'] == forecast_horizon)]['ar_layers'].values[0]
+        
+        daily_seasonality = False
+        weekly_seasonality = False
+        n_forecasts = forecast_horizon                              # Number of steps ahead of prediction time step to forecast.   
 
-        ip_params=\
-        {
-        'df':df_train,                                        # dataframe
-        'freq':'MS',                                    # model calculates frequency automatically
-        'n_historic_predictions':True,                  # number of historic points included for past projection
-        'periods':forecast_horizon,                                   # number of points for future projection
-        'valid_p':valid_size,                                  # train_test_split
-        'max_evals': 100,                                # maximum evaluations for hyperparameter tuning
-        'lagged_regressor_cols': None, # columns used as lagged regressors
-        }
+        model = NeuralProphet(
+            n_forecasts=n_forecasts,
+            n_lags=n_lags,
+            num_hidden_layers=ar_layers,
+            yearly_seasonality=yearly_seasonality,
+            seasonality_mode=seasonality_mode,
+            n_changepoints=n_changepoints,
+            epochs=epochs,
+            daily_seasonality=daily_seasonality,
+            weekly_seasonality=weekly_seasonality
+        )
 
-        op_params=\
-        {
-        'daily_seasonality':False,
-        'weekly_seasonality':False,
-        'n_forecasts': forecast_horizon,                              # Number of steps ahead of prediction time step to forecast.   
-        }
+        model.fit(df_train, freq='MS')
 
+        train_list, test_list = data_rolling_origin_prep(df_train, df_test, forecast_horizon)
+        for i in range(len(train_list)):
+            model = NeuralProphet(
+                n_forecasts=n_forecasts,
+                n_lags=n_lags,
+                num_hidden_layers=ar_layers,
+                yearly_seasonality=yearly_seasonality,
+                seasonality_mode=seasonality_mode,
+                n_changepoints=n_changepoints,
+                epochs=epochs,
+                daily_seasonality=daily_seasonality,
+                weekly_seasonality=weekly_seasonality
+            )
 
+            model.fit(train_list[i], freq='MS')
 
-        best_results['ar_layers'] = ar_layers[best_results['ar_layers']]
-        best_results['yearly_seasonality'] = yearly_seasonality[best_results['yearly_seasonality']]
-        best_results['seasonality_mode'] = seasonality_mode[best_results['seasonality_mode']]
-        best_results['epochs'] = epochs[best_results['epochs']]
+            future = model.make_future_dataframe(train_list[i], periods=len(test_list[i]))
+
+            forecast = model.predict(future)
+
+            # calculate rmse
+            rmse_n = calculate_rmse_n(test_list[i], forecast, forecast_horizon)
+
+            # calculate mape
+            mape_n = calculate_mape_n(test_list[i], forecast, forecast_horizon)
+
+            best_results = {
+                'rmse_n': rmse_n,
+                'mape_n': mape_n
+            }
 
         hyperparameters_dict = {
                         'train_size': train,
