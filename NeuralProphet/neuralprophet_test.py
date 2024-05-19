@@ -4,6 +4,7 @@ from utils import *
 import os
 from neuralprophet import set_log_level
 from hyperopt.pyll.base import scope
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, mean_absolute_percentage_error
 
 # Disable logging messages unless there is an error
 set_log_level("ERROR")
@@ -12,9 +13,9 @@ train_size = ['small', 'large']
 test_size = ['small', 'large']
 forecast_horizons = [10, 50]
 
-# train_size = ['small']
-# test_size = ['small']
-#forecast_horizons = [50]
+train_size = ['small']
+test_size = ['small']
+forecast_horizons = [50]
 
 all_metrics = []
 
@@ -50,7 +51,7 @@ for train in train_size:
         seasonality_mode=df[(df['train_size'] == train) & (df['forecast_horizon'] == forecast_horizon)]['seasonality_mode'].values[0]
         n_changepoints=df[(df['train_size'] == train) & (df['forecast_horizon'] == forecast_horizon)]['n_changepoints'].values[0]
         n_lags=df[(df['train_size'] == train) & (df['forecast_horizon'] == forecast_horizon)]['n_lags'].values[0]
-        ar_layers = df[(df['train_size'] == train) & (df['forecast_horizon'] == forecast_horizon)]['ar_layers'].values[0]
+        #ar_layers = df[(df['train_size'] == train) & (df['forecast_horizon'] == forecast_horizon)]['ar_layers'].values[0]
         
         daily_seasonality = False
         weekly_seasonality = False
@@ -59,7 +60,7 @@ for train in train_size:
         model = NeuralProphet(
             n_forecasts=n_forecasts,
             n_lags=n_lags,
-            num_hidden_layers=ar_layers,
+            #ar_layers=ar_layers,
             yearly_seasonality=yearly_seasonality,
             seasonality_mode=seasonality_mode,
             n_changepoints=n_changepoints,
@@ -71,86 +72,83 @@ for train in train_size:
         model.fit(df_train, freq='MS')
 
         train_list, test_list = data_rolling_origin_prep(df_train, df_test, forecast_horizon)
-        for i in range(len(train_list)):
-            model = NeuralProphet(
-                n_forecasts=n_forecasts,
-                n_lags=n_lags,
-                num_hidden_layers=ar_layers,
-                yearly_seasonality=yearly_seasonality,
-                seasonality_mode=seasonality_mode,
-                n_changepoints=n_changepoints,
-                epochs=epochs,
-                daily_seasonality=daily_seasonality,
-                weekly_seasonality=weekly_seasonality
-            )
+        for i, (train_data, test_data) in enumerate(zip(train_list, test_list)):
 
-            model.fit(train_list[i], freq='MS')
+            print(f'Iteration: {i}')
 
-            future = model.make_future_dataframe(train_list[i], periods=len(test_list[i]))
+            future = model.make_future_dataframe(train_data, periods=forecast_horizon, n_historic_predictions=False)
 
             forecast = model.predict(future)
 
-            # calculate rmse
-            rmse_n = calculate_rmse_n(test_list[i], forecast, forecast_horizon)
+            # Remove NA values and gather forecasts from all columns
+            forecasts = []
+            for col in forecast.columns:
+                if col.startswith('yhat'):
+                    forecasts.extend(forecast.dropna(subset=[col])[col].values.tolist())
 
-            # calculate mape
-            mape_n = calculate_mape_n(test_list[i], forecast, forecast_horizon)
+            # append metrics to list
+            if 'forecast_df' not in locals():
+                forecast_df = pd.DataFrame(columns=[f'forecast_{i}' for i in range(len(train_list))])
+                # add ds column to forecast_df
+                forecast_df['ds'] = df_test.index
+                # add true values to forecast_df
+                forecast_df['y'] = df_test['y'].values
+            
+            # add i number of NA values to start of forecast_mean and forecast_horizon - i after
+            forecasts_na = np.concatenate([np.repeat(np.nan, i), forecasts, np.repeat(np.nan, len(train_list) - 1 - i)])
+            forecast_df[f'forecast_{i}'] = forecasts_na
 
-            best_results = {
-                'rmse_n': rmse_n,
-                'mape_n': mape_n
+            # calculate metrics
+            mse = mean_squared_error(test_data['y'], forecasts)
+            rmse = np.sqrt(mse)
+            mae = mean_absolute_error(test_data['y'], forecasts)
+            mape = mean_absolute_percentage_error(test_data['y'], forecasts)
+            r2 = r2_score(test_data['y'], forecasts)
+
+            model_params = {
+                'mse': mse,
+                'rmse': rmse,
+                'mae': mae,
+                'mape': mape,
+                'r2': r2
             }
 
-        hyperparameters_dict = {
-                        'train_size': train,
-                        'forecast_horizon': forecast_horizon
-                    }
+            hyperparameters_dict = {
+                'train_size': train,
+                'test_size': test,
+                'forecast_horizon': forecast_horizon,
+                'n_lags': n_lags,
+                #'ar_layers': ar_layers,
+                'n_changepoints': n_changepoints,
+                'yearly_seasonality': yearly_seasonality,
+                'seasonality_mode': seasonality_mode,
+                'epochs': epochs,
+                'iteration': i
+            }
+
+            # combine hyperparameters with metrics
+            model_params.update(hyperparameters_dict)
+
+            # add dict to all_metrics
+            all_metrics.append(model_params)
         
-        # combine hyperparameters with metrics
-        best_results.update(hyperparameters_dict)
+                # create directory and save all outputs
+        os.makedirs(f'NeuralProphet/outputs/test/Partition_horizon_{forecast_horizon}_train_{train}', exist_ok=True)
 
-        all_metrics.append(best_results)
+        # save forecast_df
+        forecast_df.to_csv(f'NeuralProphet/outputs/test/Partition_horizon_{forecast_horizon}_train_{train}/forecast_df.csv', index=False)
 
-        # merge all dictionaries in list
-        best_results_df = pd.DataFrame(best_results)
-
-        # create directory and save all outputs
-        os.makedirs(f'NeuralProphet/outputs/tuning', exist_ok=True)
-
-        # save all metrics
-        best_results_df.to_csv(f'NeuralProphet/outputs/tuning/all_metrics_{i}.csv', index=False)
-
-        i += 1
-
-        # # create directory and save all outputs
-        # os.makedirs(f'NeuralProphet/outputs/tuning/Partition_horizon_{forecast_horizon}_train_{train}_train', exist_ok=True)
-
-        # # save model params
-        # with open(f'NeuralProphet/outputs/tuning/Partition_horizon_{forecast_horizon}_train_{train}_train/model_params.txt', 'w') as f:
-        #     f.write(str(model_params))
-
-        # # save rmse_n list
-        # with open(f'NeuralProphet/outputs/tuning/Partition_horizon_{forecast_horizon}_train_{train}_train/rmse_n.txt', 'w') as f:
-        #     f.write(str(rmse_n))
-
-        # # save mape_n list
-        # with open(f'NeuralProphet/outputs/tuning/Partition_horizon_{forecast_horizon}_train_{train}_train/mape_n.txt', 'w') as f:
-        #     f.write(str(mape_n))
-    # except:
-    #     print(f'Error in Partition_test_{test}_train_{train}_train')
-
-    #     # create directory and save all outputs
-    #     os.makedirs(f'NeuralProphet/outputs/Partition_test_{test}_train_{train}_train', exist_ok=True)
-
-    #     # save error output
-    #     with open(f'NeuralProphet/outputs/Partition_test_{test}_train_{train}_train/error.txt', 'w') as f:
-    #         f.write('Error in NeuralProphet')
+        # remove forecast_df from locals
+        del forecast_df
 
 # merge all dictionaries in list
 all_metrics_df = pd.DataFrame(all_metrics)
 
 # create directory and save all outputs
-os.makedirs(f'NeuralProphet/outputs/tuning', exist_ok=True)
+os.makedirs(f'NeuralProphet/outputs/test', exist_ok=True)
 
 # save all metrics
-all_metrics_df.to_csv('NeuralProphet/outputs/tuning/all_metrics.csv', index=False)
+all_metrics_df.to_csv('NeuralProphet/outputs/test/all_metrics.csv', index=False)
+
+# summarise bases on train and horizon both mean and std
+all_metrics_df.groupby(['train_size', 'forecast_horizon']).agg({'rmse': ['mean', 'std'], 'mape': ['mean', 'std']}).to_csv('NeuralProphet/outputs/test/np_summary.csv')

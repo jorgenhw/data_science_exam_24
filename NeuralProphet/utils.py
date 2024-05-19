@@ -35,8 +35,8 @@ def data_rolling_origin_prep(data_train: pd.DataFrame, data_test: pd.DataFrame, 
     return X, y
 
 def prepare_data_for_neural_prophet(train, test):
-    df_train = pd.read_csv(f'../data/climate/splits/train/train_{train}.csv')
-    df_test = pd.read_csv(f'../data/climate/splits/test/test_{test}.csv')
+    df_train = pd.read_csv(f'data/climate/splits/train/train_{train}.csv')
+    df_test = pd.read_csv(f'data/climate/splits/test/test_{test}_for_train_{train}.csv')
 
     # rename columns to fit neural prophet requirements
     df_train.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)

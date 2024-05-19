@@ -1,0 +1,4 @@
+,,rmse,rmse,mape,mape
+,,mean,std,mean,std
+train_size,forecast_horizon,,,,
+small,50,2.0632233897386376,0.6197740782428719,52.592120765181335,40.986638225515556

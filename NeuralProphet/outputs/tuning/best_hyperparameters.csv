@@ -1,0 +1,2 @@
+train_size,forecast_horizon,yearly_seasonality,seasonality_mode,n_changepoints,n_lags
+small,50,True,additive,50,50
