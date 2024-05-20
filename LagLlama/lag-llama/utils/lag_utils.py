@@ -33,9 +33,9 @@ def data_rolling_origin_prep(data_train: pd.DataFrame, data_test: pd.DataFrame, 
         y.append(data_test[i:i + horizon])
     return X, y
 
-def prepare_data_for_lag_llama(train, test):
-    df_train = pd.read_csv(f'data_test/climate/splits/train/train_{train}.csv')
-    df_test = pd.read_csv(f'data_test/climate/splits/test/test_{test}.csv')
+def prepare_data_for_lag_llama(data, train, test):
+    df_train = pd.read_csv(f'data_test/{data}/splits/train/train_{train}.csv')
+    df_test = pd.read_csv(f'data_test/{data}/splits/test/test_{test}_for_train_{train}.csv')
 
     # rename columns to fit neural prophet requirements
     df_train.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
@@ -48,7 +48,13 @@ def prepare_data_for_lag_llama(train, test):
     df_train['ds'] = pd.to_datetime(df_train['ds'])
     df_test['ds'] = pd.to_datetime(df_test['ds'])
 
-    # Function to find the closest first day of the month
+    df_train.set_index('ds', inplace=True)
+    df_test.set_index('ds', inplace=True)
+    
+    return df_train, df_test
+
+def fix_dates_month(df_train, df_test):
+        # Function to find the closest first day of the month
     def closest_first_day(date):
         first_day_this_month = date.replace(day=1)
         first_day_next_month = first_day_this_month + pd.offsets.MonthBegin(1)
@@ -56,6 +62,9 @@ def prepare_data_for_lag_llama(train, test):
             return first_day_next_month
         else:
             return first_day_this_month
+    
+    df_train['ds'] = df_train.index
+    df_test['ds'] = df_test.index
 
     # Apply the function to each date in the 'dates' column
     df_train['ds'] =df_train['ds'].apply(closest_first_day)
@@ -63,7 +72,7 @@ def prepare_data_for_lag_llama(train, test):
 
     df_train.set_index('ds', inplace=True)
     df_test.set_index('ds', inplace=True)
-    
+
     return df_train, df_test
 
 def to_deepar_format(dataframe, freq):
