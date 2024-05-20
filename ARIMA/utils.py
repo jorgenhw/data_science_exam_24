@@ -37,13 +37,22 @@ def prepare_data_for_arima(data, train, test):
     df_train = pd.read_csv(f'data/{data}/splits/train/train_{train}.csv')
     df_test = pd.read_csv(f'data/{data}/splits/test/test_{test}_for_train_{train}.csv')
 
-    # rename columns to fit neural prophet requirements
-    df_train.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
-    df_test.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
-
     # remove columns that are not needed
-    df_train.drop(columns=['time', 'AMOC1', 'AMOC2', 'GM'], inplace=True)
-    df_test.drop(columns=['time', 'AMOC1', 'AMOC2', 'GM'], inplace=True)
+    if data == 'climate':
+    # rename columns to fit neural prophet requirements
+        df_train.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
+        df_test.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
+
+        df_train.drop(columns=['time', 'AMOC1', 'AMOC2', 'GM'], inplace=True)
+        df_test.drop(columns=['time', 'AMOC1', 'AMOC2', 'GM'], inplace=True)
+    elif data == 'weather':
+
+        # rename columns to fit neural prophet requirements
+        df_train.rename(columns={'DateTime': 'ds', 'Middeltemperatur': 'y'}, inplace=True)
+        df_test.rename(columns={'DateTime': 'ds', 'Middeltemperatur': 'y'}, inplace=True)
+
+        df_train.drop(columns=['Luftfugtighed', 'Nedbør', 'Nedbørsminutter','Maksimumtemperatur', 'Minimumtemperatur', 'Skyhøjde', 'Skydække', 'Middelvindhastighed', 'Højeste vindstød'], inplace=True)
+        df_test.drop(columns=['Luftfugtighed', 'Nedbør', 'Nedbørsminutter','Maksimumtemperatur', 'Minimumtemperatur', 'Skyhøjde', 'Skydække', 'Middelvindhastighed', 'Højeste vindstød'], inplace=True)
 
     df_train['ds'] = pd.to_datetime(df_train['ds'])
     df_test['ds'] = pd.to_datetime(df_test['ds'])

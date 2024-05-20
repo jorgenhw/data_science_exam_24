@@ -4,6 +4,7 @@ from utils import *
 import os
 from neuralprophet import set_log_level
 from hyperopt.pyll.base import scope
+import pickle
 
 # Disable logging messages unless there is an error
 set_log_level("ERROR")
@@ -19,6 +20,7 @@ forecast_horizons = [10, 50]
 
 all_metrics = []
 
+i = 0
 
 for data in dataset:
     for train in train_size:
@@ -54,6 +56,15 @@ for data in dataset:
                 valid_size = forecast_horizon/100
             elif train == 'large':
                 valid_size = forecast_horizon/1000
+            
+            if data == 'climate':
+                freq = 'MS'
+                yearly_seasonality =True
+                daily_seasonality = False
+            elif data == 'weather':
+                freq = 'H'
+                yearly_seasonality = False
+                daily_seasonality = True
 
             # df_train = make_series_stationary(df_train).fillna(0)
 
@@ -65,7 +76,7 @@ for data in dataset:
             # lagged_regressor_cols = df_train.columns[2:]
 
             epochs=[100]
-            yearly_seasonality=[4,5,6,7] # ['True', 4,5,6,7]
+            #yearly_seasonality=yearly_seasonality # ['True', 4,5,6,7]
             # loss_func=['MAE','MSE','Huber']
             seasonality_mode=['additive','multiplicative']
             #n_changepoints=[5,10,20,50]
@@ -75,7 +86,7 @@ for data in dataset:
             model_params =\
             {
             'epochs':hp.choice('epochs',epochs), 
-            'yearly_seasonality':hp.choice('yearly_seasonality',yearly_seasonality),
+            #'yearly_seasonality':hp.choice('yearly_seasonality',yearly_seasonality),
             # 'loss_func':hp.choice('loss_func',loss_func),
             'seasonality_mode': hp.choice('seasonality_mode',seasonality_mode),     # additive = T+S+e, (Trend, Seasonality, error)
                                                                                     # multiplicative = T*S*e 
@@ -88,7 +99,7 @@ for data in dataset:
             ip_params=\
             {
             'df':df_train,                                        # dataframe
-            'freq':'MS',                                    # model calculates frequency automatically
+            'freq':freq,                                    # model calculates frequency automatically
             'n_historic_predictions':True,                  # number of historic points included for past projection
             'periods':forecast_horizon,                                   # number of points for future projection
             'valid_p':valid_size,                                  # train_test_split
@@ -98,7 +109,8 @@ for data in dataset:
 
             op_params=\
             {
-            'daily_seasonality':False,
+            'daily_seasonality':daily_seasonality,
+            'yearly_seasonality':yearly_seasonality,
             'weekly_seasonality':False,
             'n_forecasts': forecast_horizon,                              # Number of steps ahead of prediction time step to forecast.   
             }
@@ -108,11 +120,23 @@ for data in dataset:
                     # remove valid_p from dict
                     ip_params.pop('valid_p')
                     best_results = train_neural_prophet_noval(model_params, ip_params, op_params)
+                else:
+                    best_results = train_neural_prophet(model_params, ip_params, op_params)
             else:
                 best_results = train_neural_prophet(model_params, ip_params, op_params)
 
+            # create directory and save all outputs
+            os.makedirs(f'NeuralProphet/outputs/tuning', exist_ok=True)
+
+            # Open a file in write binary mode
+            with open(f'NeuralProphet/outputs/tuning/my_variable_{i}.pkl', 'wb') as f:
+                # Use pickle.dump to write the variable to the file
+                pickle.dump(best_results, f)
+            i = i + 1
+            print(best_results)
+
             best_results['ar_layers'] = ar_layers[best_results['ar_layers']]
-            best_results['yearly_seasonality'] = yearly_seasonality[best_results['yearly_seasonality']]
+            #best_results['yearly_seasonality'] = yearly_seasonality[best_results['yearly_seasonality']]
             best_results['seasonality_mode'] = seasonality_mode[best_results['seasonality_mode']]
             best_results['epochs'] = epochs[best_results['epochs']]
 

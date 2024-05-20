@@ -9,8 +9,6 @@ forecast_horizons = [10, 50]
 
 all_metrics = []
 
-i = 1
-
 for data in dataset:
     for train in train_size:
         for forecast_horizon in forecast_horizons:
@@ -40,10 +38,13 @@ for data in dataset:
 
             if data == 'climate':
                 df_train, df_test = fix_dates_month(df_train, df_test)
+                m = 12
+            elif data == 'weather':
+                m = 24
 
             # Search for optimal ARIMA parameters
             model = auto_arima(df_train['y'], start_p=1, start_q=1,
-                            max_p=20, max_q=20, m=12,
+                            max_p=20, max_q=20, m=m,
                             start_P=0, seasonal=True,
                             d=None, D=None, trace=True,
                             error_action='ignore',  

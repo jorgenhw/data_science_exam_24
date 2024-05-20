@@ -1,5 +1,9 @@
-train_size,forecast_horizon,context_length,rope_scaling
-large,10,950,False
-large,50,64,True
-small,10,100,True
-small,50,100,True
+dataset,train_size,forecast_horizon,context_length,rope_scaling
+climate,large,10,950,False
+climate,large,50,64,True
+weather,large,10,512,False
+weather,large,50,512,False
+climate,small,10,100,True
+climate,small,50,100,True
+weather,small,10,100,True
+weather,small,50,100,True

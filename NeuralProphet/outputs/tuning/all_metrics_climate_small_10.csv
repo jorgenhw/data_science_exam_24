@@ -1,0 +1,2 @@
+ar_layers,epochs,n_changepoints,n_lags,seasonality_mode,dataset,train_size,forecast_horizon
+32,100,35.0,0.0,multiplicative,climate,small,10
