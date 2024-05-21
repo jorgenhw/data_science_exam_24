@@ -64,12 +64,13 @@ for data in datasets:
                 # Prepare the data for deepAR format
                 train_data_lds = to_deepar_format(train_data, freq)
 
-                forecast, ts = get_lag_llama_predictions(train_data_lds, forecast_horizon, torch.device('cpu'), context_length, rope_scaling)
+                forecast, ts = get_lag_llama_predictions(train_data_lds, forecast_horizon, torch.device('mps'), context_length, rope_scaling)
 
                 evaluator = Evaluator(num_workers = None)
                 agg_metrics, ts_metrics = evaluator(iter(ts), iter(forecast))
 
                 hyperparameters_dict = {
+                    'dataset': data,
                     'context_length': context_length,
                     'rope_scaling': rope_scaling,
                     'train_size': train,
