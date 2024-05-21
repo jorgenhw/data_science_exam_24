@@ -1,0 +1,5 @@
+ar_layers,epochs,n_changepoints,n_lags,seasonality_mode,dataset,train_size,forecast_horizon
+32,100,20.0,0.0,multiplicative,weather,small,50
+32,100,20.0,0.0,multiplicative,weather,small,50
+32,100,20.0,0.0,multiplicative,weather,small,50
+32,100,20.0,0.0,multiplicative,weather,small,50

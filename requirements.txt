@@ -13,4 +13,6 @@ keras == 3.3.3
 tensorflow == 2.16.1
 pathlib
 statsforecast
-neuralprophet==0.4.2
+neuralprophet==1.0.0rc9
+pmdarima
+hyperopt

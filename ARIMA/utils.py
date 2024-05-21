@@ -33,21 +33,36 @@ def data_rolling_origin_prep(data_train: pd.DataFrame, data_test: pd.DataFrame, 
         y.append(data_test[i:i + horizon])
     return X, y
 
-def prepare_data_for_arima(train, test):
-    df_train = pd.read_csv(f'data/climate/splits/train/train_{train}.csv')
-    df_test = pd.read_csv(f'data/climate/splits/test/test_{test}.csv')
-
-    # rename columns to fit neural prophet requirements
-    df_train.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
-    df_test.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
+def prepare_data_for_arima(data, train, test):
+    df_train = pd.read_csv(f'data/{data}/splits/train/train_{train}.csv')
+    df_test = pd.read_csv(f'data/{data}/splits/test/test_{test}_for_train_{train}.csv')
 
     # remove columns that are not needed
-    df_train.drop(columns=['time', 'AMOC1', 'AMOC2', 'GM'], inplace=True)
-    df_test.drop(columns=['time', 'AMOC1', 'AMOC2', 'GM'], inplace=True)
+    if data == 'climate':
+    # rename columns to fit neural prophet requirements
+        df_train.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
+        df_test.rename(columns={'date': 'ds', 'AMOC0': 'y'}, inplace=True)
+
+        df_train.drop(columns=['time', 'AMOC1', 'AMOC2', 'GM'], inplace=True)
+        df_test.drop(columns=['time', 'AMOC1', 'AMOC2', 'GM'], inplace=True)
+    elif data == 'weather':
+
+        # rename columns to fit neural prophet requirements
+        df_train.rename(columns={'DateTime': 'ds', 'Middeltemperatur': 'y'}, inplace=True)
+        df_test.rename(columns={'DateTime': 'ds', 'Middeltemperatur': 'y'}, inplace=True)
+
+        df_train.drop(columns=['Luftfugtighed', 'Nedbør', 'Nedbørsminutter','Maksimumtemperatur', 'Minimumtemperatur', 'Skyhøjde', 'Skydække', 'Middelvindhastighed', 'Højeste vindstød'], inplace=True)
+        df_test.drop(columns=['Luftfugtighed', 'Nedbør', 'Nedbørsminutter','Maksimumtemperatur', 'Minimumtemperatur', 'Skyhøjde', 'Skydække', 'Middelvindhastighed', 'Højeste vindstød'], inplace=True)
 
     df_train['ds'] = pd.to_datetime(df_train['ds'])
     df_test['ds'] = pd.to_datetime(df_test['ds'])
 
+    # df_train.set_index('ds', inplace=True)
+    # df_test.set_index('ds', inplace=True)
+    
+    return df_train, df_test
+
+def fix_dates_month(df_train, df_test):
     # Function to find the closest first day of the month
     def closest_first_day(date):
         first_day_this_month = date.replace(day=1)
@@ -61,7 +76,4 @@ def prepare_data_for_arima(train, test):
     df_train['ds'] =df_train['ds'].apply(closest_first_day)
     df_test['ds'] =df_test['ds'].apply(closest_first_day)
 
-    # df_train.set_index('ds', inplace=True)
-    # df_test.set_index('ds', inplace=True)
-    
     return df_train, df_test

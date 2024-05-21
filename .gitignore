@@ -21,3 +21,6 @@ LagLlama/lag-llama/*
 !/LagLlama/lag-llama/outputs/
 !/LagLlama/lag-llama/utils/
 /LagLlama/lag-llama/utils/utils.py
+!/LagLlama/lag-llama/outputs/tuning/best_hyperparameters.csv
+
+*.ckpt

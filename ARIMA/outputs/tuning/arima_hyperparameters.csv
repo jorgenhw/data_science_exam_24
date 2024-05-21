@@ -1,5 +1,9 @@
-order,seasonal_order,trend,with_intercept,mse,train_size,test_size,forecast_horizon
-"(2, 0, 1)","(0, 0, 2, 12)",,True,0.005520562857100252,small,small,10
-"(0, 0, 1)","(1, 0, 0, 12)",,True,0.006396027750096772,small,large,50
-"(2, 0, 2)","(1, 0, 0, 12)",,True,0.07797349236174125,large,small,10
-"(0, 0, 0)","(2, 0, 2, 12)",,True,0.07435871231560305,large,large,50
+order,seasonal_order,trend,with_intercept,mse,dataset,train_size,test_size,forecast_horizon
+"(2, 0, 1)","(0, 0, 2, 12)",,True,0.005517463097819189,climate,small,small,10
+"(0, 0, 1)","(1, 0, 0, 12)",,True,0.006396027750075434,climate,small,large,50
+"(2, 0, 2)","(1, 0, 0, 12)",,True,0.07798377189228775,climate,large,small,10
+"(0, 0, 0)","(2, 0, 2, 12)",,True,0.07435516835421513,climate,large,large,50
+"(5, 0, 0)","(0, 0, 0, 24)",,True,2.1140582765587754,weather,small,small,10
+"(0, 0, 1)","(2, 0, 1, 24)",,True,1.0623918330206636,weather,small,large,50
+"(0, 1, 0)","(2, 0, 0, 24)",,True,2.8495587368942354,weather,large,small,10
+"(0, 1, 0)","(2, 0, 0, 24)",,True,11.219523165342244,weather,large,large,50
