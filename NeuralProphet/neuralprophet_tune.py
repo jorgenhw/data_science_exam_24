@@ -167,4 +167,4 @@ all_metrics_df = pd.DataFrame(all_metrics)
 os.makedirs(f'NeuralProphet/outputs/tuning', exist_ok=True)
 
 # save all metrics
-all_metrics_df.to_csv('NeuralProphet/outputs/tuning/all_metrics.csv', index=False)
+all_metrics_df.to_csv('NeuralProphet/outputs/tuning/best_hyperparameters.csv', index=False)

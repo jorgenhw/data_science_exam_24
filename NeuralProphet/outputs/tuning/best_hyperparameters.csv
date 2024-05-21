@@ -1,0 +1,9 @@
+ar_layers,epochs,n_changepoints,n_lags,seasonality_mode,dataset,train_size,forecast_horizon
+[32],100,35.0,0.0,multiplicative,climate,small,10
+"[32, 32, 32]",100,50.0,0.0,multiplicative,climate,small,50
+"[32, 32]",100,5.0,15.0,additive,climate,large,10
+"[32, 32, 32, 32]",100,0.0,225.0,additive,climate,large,50
+"[32, 32]",100,40.0,5.0,additive,weather,small,10
+"[32, 32, 32, 32]",100,20.0,0.0,multiplicative,weather,small,50
+"[32, 32, 32, 32]",100,5.0,275.0,multiplicative,weather,large,10
+[],100,35.0,10.0,multiplicative,weather,large,50
