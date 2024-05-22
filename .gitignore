@@ -15,6 +15,6 @@ venv_data_science_exam
 # ignor all pycache folders
 __pycache__/
 
-LagLlama/lag-llama/*
+LagLlama/lag-llama/
 
 *.ckpt
