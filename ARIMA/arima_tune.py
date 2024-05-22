@@ -14,16 +14,8 @@ for data in dataset:
         for forecast_horizon in forecast_horizons:
             if forecast_horizon == 10:
                 test = 'small'
-                # if train == 'small':
-                #     max_n_lags = 50
-                # elif train == 'large':
-                #     max_n_lags = 500
             elif forecast_horizon == 50:
                 test = 'large'
-                # if train == 'small':
-                #     max_n_lags = 50
-                # elif train == 'large':
-                #     max_n_lags = 500
 
             # print dashes
             print('-'*50)

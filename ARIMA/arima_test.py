@@ -12,10 +12,6 @@ train_size = ['small', 'large']
 test_size = ['small', 'large']
 forecast_horizons = [10, 50]
 
-# train_size = ['small']
-# test_size = ['small']
-# forecast_horizons = [10]
-
 all_metrics = []
 
 # read hyperparameters from csv
@@ -26,23 +22,15 @@ for data in datasets:
         for forecast_horizon in forecast_horizons:
             if forecast_horizon == 10:
                 test = 'small'
-                # if train == 'small':
-                #     max_n_lags = 50
-                # elif train == 'large':
-                #     max_n_lags = 500
             elif forecast_horizon == 50:
                 test = 'large'
-                # if train == 'small':
-                #     max_n_lags = 50
-                # elif train == 'large':
-                #     max_n_lags = 500
 
             # print dashes
             print('-'*50)
             # print train forecast horizon
             print(f'Test: {test}',
                 f'Train: {train}',
-                    f'Forecast Horizon: {forecast_horizon}')
+                f'Forecast Horizon: {forecast_horizon}')
             # print dashes
             print('-'*50)
 
