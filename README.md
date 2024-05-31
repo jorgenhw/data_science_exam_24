@@ -127,18 +127,15 @@ python3 timeGPT_analysis.py
 │   └── utils.py
 ├── README.md
 ├── RNN
-│   ├── analysis_climate.ipynb
-│   ├── analysis_weather.ipynb
+│   ├── RNN_analysis.py
 │   ├── error_metrics.ipynb
-│   └── results
+│   └── outputs
 │       ├── all_error_metrics
 │       ├── climate_data
 │       └── weather_data
 ├── TimeGPT
-│   ├── analysis_climate.ipynb
-│   ├── analysis_weather.ipynb
-│   ├── error_metrics.ipynb
-│   └── results
+│   ├── timeGPT_analysis.py
+│   └── outputs
 │       ├── all_error_metrics
 │       ├── climate_data
 │       └── weather_data
