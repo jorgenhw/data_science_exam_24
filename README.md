@@ -80,8 +80,9 @@ python3 neuralprophet_test.py
 * To replicate the results for the LSTM model, run the following in the terminal, line by line.
 ```bash
 cd RNN/
+python3 RNN_analysis.py
 ```
-* Run the notebooks ```analysis_climate.ipynb``` and ```analysis_weather.ipynb``` to replicate results, but do read the contents in the notebooks before running them. To generate the error metrics, run the notebook ```error_metrics.ipynb```.
+* To generate the error metrics, run the notebook ```error_metrics.ipynb```.
 
 **LagLlama**
 * NOTE: LagLlama requires some extra steps to run efficiently. Read and run the ```lagllama_setup.sh``` in your terminal and then the other steps:
@@ -93,11 +94,14 @@ python3 lag_llama_test.py
 ```
 
 **TimeGPT**
+
+* Unlike the other models, TimeGPT are closed source and can only be used with an API key. This key can be obtained by registering on https://docs.nixtla.io/. Place the API key in a .env file, in which you add the line ```NIXTLATS_API_KEY = "your-API-key-goes-here"```.
 * To replicate the results for TimeGPT, run the following in the terminal, line by line.
 ```bash
 cd TimeGPT/
+python3 timeGPT_analysis.py
 ```
-* Run the notebooks ```analysis_climate.ipynb``` and ```analysis_weather.ipynb``` to replicate results, but do read the contents in the notebooks before running them. To generate the error metrics, run the notebook ```error_metrics.ipynb```.
+* To generate the error metrics, run the content of the notebook ```error_metrics.ipynb```.
 
 ## Repository structure
 ```
